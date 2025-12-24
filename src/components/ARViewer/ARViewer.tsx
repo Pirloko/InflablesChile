@@ -256,10 +256,10 @@ export default function ARViewer({ inflable }: { inflable: Inflable }) {
           antialias: true, 
           alpha: true,
           preserveDrawingBuffer: true,
-          xr: true,
         }}
         camera={{ position: [0, 1.6, 0], fov: 75 }}
         dpr={[1, 2]}
+        xr
       >
         <Suspense fallback={null}>
           <ARScene inflable={inflable} onARReady={setARReady} />

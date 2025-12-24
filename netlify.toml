@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Headers para WebXR
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "camera=*, xr-spatial-tracking=*"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+
