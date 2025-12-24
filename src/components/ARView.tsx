@@ -21,18 +21,24 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
   const [loading, setLoading] = useState(true);
   const sceneRef = useRef<HTMLDivElement>(null);
   const aframeLoaded = useRef(false);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
 
-  // Solicitar permiso de cámara
+  // Solicitar permiso de cámara y mantenerla activa
   useEffect(() => {
     const requestCamera = async () => {
       try {
+        console.log('Solicitando acceso a la cámara del dispositivo...');
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            facingMode: 'environment' // Cámara trasera en móviles
+            facingMode: 'environment', // Cámara trasera en móviles
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
           } 
         });
-        // Detener el stream, solo necesitábamos el permiso
-        stream.getTracks().forEach(track => track.stop());
+        
+        // NO detener el stream - mantenerlo activo para que AR.js lo use
+        cameraStreamRef.current = stream;
+        console.log('Cámara activada correctamente');
         setCameraPermission(true);
         setLoading(false);
       } catch (err) {
@@ -43,6 +49,15 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
     };
 
     requestCamera();
+
+    // Limpiar el stream cuando el componente se desmonte
+    return () => {
+      if (cameraStreamRef.current) {
+        console.log('Deteniendo stream de cámara');
+        cameraStreamRef.current.getTracks().forEach(track => track.stop());
+        cameraStreamRef.current = null;
+      }
+    };
   }, []);
 
   // Cargar A-Frame y AR.js dinámicamente
@@ -193,21 +208,20 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
         ✕ Cerrar AR
       </button>
       
-      {/* Escena A-Frame con AR.js - Markerless AR */}
-      {/* Usa location-based AR que funciona sin marcadores físicos */}
+      {/* Escena A-Frame con AR.js - Markerless AR usando cámara del dispositivo */}
+      {/* sourceType: webcam hace que AR.js use directamente la cámara del dispositivo */}
       <a-scene
         ref={sceneRef}
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true; colorManagement: true; sortObjects: true"
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/data/camera_para.dat; maxDetectionRate: 60; canvasWidth: 1280; canvasHeight: 720;"
+        renderer="logarithmicDepthBuffer: true; colorManagement: true; sortObjects: true; alpha: true"
+        arjs="trackingMethod: best; sourceType: webcam; sourceWidth: 1280; sourceHeight: 720; displayWidth: 1280; displayHeight: 720; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; cameraParametersUrl: https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/data/camera_para.dat; maxDetectionRate: 60; canvasWidth: 1280; canvasHeight: 720;"
         embedded
         style={{ width: '100%', height: '100%' }}
       >
-        {/* Cámara AR con tracking markerless usando location-based */}
+        {/* Cámara AR - AR.js manejará la cámara automáticamente con sourceType: webcam */}
         <a-entity
           camera
-          gps-camera
-          rotation-reader
+          look-controls="enabled: true"
         ></a-entity>
 
         {/* Iluminación */}
@@ -215,13 +229,12 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
         <a-light type="directional" position="1 1 1" intensity="0.9"></a-light>
 
         {/* Modelo 3D del inflable - Markerless AR */}
-        {/* gps-entity-place permite ubicar el modelo sin marcadores físicos */}
+        {/* Para markerless AR sin marcadores, el modelo se posiciona relativo a la cámara */}
         <a-entity
           gltf-model={`url(${modelPath})`}
           scale={scale}
-          position="0 0 -1"
+          position="0 0 -2"
           rotation="0 0 0"
-          gps-entity-place="latitude: 0; longitude: 0;"
           animation="property: rotation; to: 0 360 0; loop: true; dur: 20000; easing: linear"
         ></a-entity>
 
