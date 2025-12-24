@@ -8,11 +8,12 @@
 [build.environment]
   NODE_VERSION = "18"
 
-# Headers para WebXR
+# Headers para WebAR (cámara, sin VR)
 [[headers]]
   for = "/*"
   [headers.values]
-    Permissions-Policy = "camera=*, xr-spatial-tracking=*"
+    Permissions-Policy = "camera=*, geolocation=*"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    Feature-Policy = "camera 'self'"
 

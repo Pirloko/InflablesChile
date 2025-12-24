@@ -6,8 +6,9 @@ import inflablesData from '@/data/inflables.json';
 import type { Inflable } from '@/types/inflable';
 import InflableCard from '@/components/InflableCard';
 
-// Cargar ARViewer dinámicamente para evitar problemas de SSR
-const ARViewer = dynamic(() => import('@/components/ARViewer'), {
+// Cargar ARView dinámicamente para evitar problemas de SSR
+// ARView usa A-Frame + AR.js que requiere el navegador
+const ARView = dynamic(() => import('@/components/ARView').then(mod => ({ default: mod.default })), {
   ssr: false,
   loading: () => <div className="ar-loading">Cargando AR...</div>,
 });
@@ -32,12 +33,7 @@ export default function Home() {
 
   if (showAR && selectedInflable) {
     return (
-      <div className="ar-page">
-        <button className="btn-close-ar" onClick={handleCloseAR}>
-          ✕ Cerrar AR
-        </button>
-        <ARViewer inflable={selectedInflable} />
-      </div>
+      <ARView inflable={selectedInflable} onClose={handleCloseAR} />
     );
   }
 
