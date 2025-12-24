@@ -134,7 +134,7 @@ function ARScene({
         arSession.end();
       }
     };
-  }, [gl, camera, onARReady]);
+  }, [gl, camera, onARReady, arSession]);
 
   // Manejar interacción táctil para mover y rotar
   useEffect(() => {
@@ -259,7 +259,6 @@ export default function ARViewer({ inflable }: { inflable: Inflable }) {
         }}
         camera={{ position: [0, 1.6, 0], fov: 75 }}
         dpr={[1, 2]}
-        xr
       >
         <Suspense fallback={null}>
           <ARScene inflable={inflable} onARReady={setARReady} />
