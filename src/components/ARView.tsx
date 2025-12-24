@@ -52,11 +52,16 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
     // Verificar si A-Frame ya está cargado
     if (typeof window !== 'undefined' && window.AFRAME) {
       console.log('A-Frame ya está cargado');
-      // Esperar un poco para que AR.js también se cargue si ya está presente
-      setTimeout(() => {
-        aframeLoaded.current = true;
-        setLoading(false);
-      }, 500);
+      aframeLoaded.current = true;
+      setLoading(false);
+      // Intentar cargar AR.js si no está presente
+      if (!document.querySelector('script[src*="ar.js"]')) {
+        console.log('Intentando cargar AR.js...');
+        const arjsScript = document.createElement('script');
+        arjsScript.src = 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.js';
+        arjsScript.async = true;
+        document.head.appendChild(arjsScript);
+      }
       return;
     }
 
@@ -152,8 +157,8 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
     );
   }
 
-  // Esperar a que A-Frame esté cargado antes de renderizar la escena
-  // Pero también verificar si A-Frame ya está disponible en el DOM
+  // Renderizar la escena tan pronto como A-Frame esté disponible
+  // AR.js se cargará automáticamente cuando detecte los atributos arjs en a-scene
   const isAFrameReady = aframeLoaded.current || (typeof window !== 'undefined' && window.AFRAME);
   
   if (!isAFrameReady && cameraPermission) {
@@ -167,6 +172,11 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
         </div>
       </div>
     );
+  }
+  
+  // Si A-Frame está listo pero aún no hemos marcado como cargado, hacerlo ahora
+  if (isAFrameReady && !aframeLoaded.current) {
+    aframeLoaded.current = true;
   }
 
   // Ruta del modelo 3D
