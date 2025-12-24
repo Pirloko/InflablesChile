@@ -47,40 +47,78 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
 
   // Cargar A-Frame y AR.js dinámicamente
   useEffect(() => {
-    if (!cameraPermission || aframeLoaded.current) return;
+    if (!cameraPermission) return;
 
     // Verificar si A-Frame ya está cargado
     if (typeof window !== 'undefined' && window.AFRAME) {
-      aframeLoaded.current = true;
-      setLoading(false);
+      console.log('A-Frame ya está cargado');
+      // Esperar un poco para que AR.js también se cargue si ya está presente
+      setTimeout(() => {
+        aframeLoaded.current = true;
+        setLoading(false);
+      }, 500);
       return;
     }
 
+    console.log('Cargando A-Frame...');
     // Cargar A-Frame
     const aframeScript = document.createElement('script');
     aframeScript.src = 'https://aframe.io/releases/1.4.2/aframe.min.js';
     aframeScript.async = true;
     
     aframeScript.onload = () => {
-      // Cargar AR.js después de A-Frame (versión que soporta markerless)
-      const arjsScript = document.createElement('script');
-      arjsScript.src = 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.js';
-      arjsScript.async = true;
+      console.log('A-Frame cargado, cargando AR.js...');
+      // Cargar AR.js después de A-Frame
+      // Intentar múltiples URLs como fallback
+      const arjsUrls = [
+        'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.2/aframe/build/aframe-ar.js',
+        'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js',
+        'https://unpkg.com/ar.js@3.4.2/aframe/build/aframe-ar.js'
+      ];
       
-      arjsScript.onload = () => {
-        aframeLoaded.current = true;
-        // Forzar re-render del componente
-        setLoading(false);
+      let currentUrlIndex = 0;
+      
+      const tryLoadARJS = () => {
+        if (currentUrlIndex >= arjsUrls.length) {
+          console.warn('No se pudo cargar AR.js desde ningún CDN, continuando con A-Frame');
+          aframeLoaded.current = true;
+          setLoading(false);
+          return;
+        }
+        
+        const arjsScript = document.createElement('script');
+        arjsScript.src = arjsUrls[currentUrlIndex];
+        arjsScript.async = true;
+        
+        arjsScript.onload = () => {
+          console.log('AR.js cargado correctamente desde:', arjsUrls[currentUrlIndex]);
+          aframeLoaded.current = true;
+          setLoading(false);
+        };
+        
+        arjsScript.onerror = () => {
+          console.warn('Error cargando AR.js desde:', arjsUrls[currentUrlIndex]);
+          currentUrlIndex++;
+          tryLoadARJS(); // Intentar siguiente URL
+        };
+        
+        document.head.appendChild(arjsScript);
       };
       
-      arjsScript.onerror = () => {
-        setError('Error cargando AR.js. Por favor, verifica tu conexión a internet.');
-      };
+      tryLoadARJS();
       
-      document.head.appendChild(arjsScript);
+      // Timeout de seguridad: si AR.js no carga en 8 segundos, continuar de todos modos
+      setTimeout(() => {
+        if (!aframeLoaded.current) {
+          console.warn('Timeout esperando AR.js, continuando con A-Frame');
+          aframeLoaded.current = true;
+          setLoading(false);
+        }
+      }, 8000);
     };
     
-    aframeScript.onerror = () => {
+    aframeScript.onerror = (err) => {
+      console.error('Error cargando A-Frame:', err);
       setError('Error cargando A-Frame. Por favor, verifica tu conexión a internet.');
     };
     
@@ -115,11 +153,17 @@ export default function ARView({ inflable, onClose }: { inflable: Inflable; onCl
   }
 
   // Esperar a que A-Frame esté cargado antes de renderizar la escena
-  if (!aframeLoaded.current && cameraPermission) {
+  // Pero también verificar si A-Frame ya está disponible en el DOM
+  const isAFrameReady = aframeLoaded.current || (typeof window !== 'undefined' && window.AFRAME);
+  
+  if (!isAFrameReady && cameraPermission) {
     return (
       <div className="ar-view-loading">
         <div className="ar-loading-content">
           <p>Cargando AR...</p>
+          <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.8 }}>
+            Esto puede tardar unos segundos
+          </p>
         </div>
       </div>
     );
