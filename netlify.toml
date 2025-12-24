@@ -1,19 +1,8 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "dist"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-[build.environment]
-  NODE_VERSION = "18"
-
-# Headers para WebAR (cámara, sin VR)
-[[headers]]
-  for = "/*"
-  [headers.values]
-    Permissions-Policy = "camera=*, geolocation=*"
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Feature-Policy = "camera 'self'"
-
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
